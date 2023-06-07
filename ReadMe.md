@@ -25,7 +25,7 @@ import (
 	"context"
 	"time"
 
-	"git.woa.com/pcg-csd/dbproxy/migration-tool/common/asyncio"
+	"github.com/franklee0817/asyncio"
 )
 
 type mLogic struct{}
@@ -65,7 +65,7 @@ import (
 	"fmt"
 	"time"
 
-	"git.woa.com/pcg-csd/dbproxy/migration-tool/common/asyncio"
+	"github.com/franklee0817/asyncio"
 )
 
 type dbLogic struct{}
