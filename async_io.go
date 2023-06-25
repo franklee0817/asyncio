@@ -279,6 +279,7 @@ func (ctrl *Controller) watchBuffer(ctx context.Context) {
 
 			// 管道已关闭，程序执行完成
 			ctrl.finished = true
+			return
 		}
 	}
 }
@@ -286,6 +287,7 @@ func (ctrl *Controller) watchBuffer(ctx context.Context) {
 // doWrite 执行数据写入，写入时出现错误则休眠ctrl.wd时间后继续尝试写入，直到写入成功为止
 // Caution: 写入数据和写入cursor需要用户自行保证幂等
 func (ctrl *Controller) doWrite(ctx context.Context, buffer []CursorGetter) {
+	retry := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -293,10 +295,19 @@ func (ctrl *Controller) doWrite(ctx context.Context, buffer []CursorGetter) {
 		default:
 			cursor := buffer[len(buffer)-1].GetCursor()
 			err := ctrl.writeBucket(context.Background(), buffer, cursor)
-			ctrl.writerWait()
 			if err == nil {
+				ctrl.writerWait()
 				return
 			}
+
+			// 出现错误时，按错误次数放大重试间隔
+			retry++
+			modulus := retry * retry
+			if modulus > 30 {
+				modulus = 30
+			}
+			dur := time.Duration(modulus) * time.Second
+			time.Sleep(dur)
 			log.Printf(fmt.Sprintf("writer【%s】数据写入失败(%s后重试)，err:%v", ctrl.w.Name(), ctrl.wwd, err))
 		}
 	}
